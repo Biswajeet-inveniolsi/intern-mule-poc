@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <http:listener-config name="mulesoft-poc1-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="mulesoft-poc1-config" api="mulesoft-poc1.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="mulesoft-poc1-main">
+        <http:listener config-ref="mulesoft-poc1-httpListenerConfig" path="/api/*">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="f838063b-1f70-4155-a863-5e9e02ac31b5" message="Entering into MuleSoft POC flow." />
+		<apikit:router config-ref="mulesoft-poc1-config" />
+		<logger level="INFO" doc:name="Logger" doc:id="e7b9ca72-2ddc-46e0-87d7-87c1e0ccba87" message="Routing of the incoming request."/>
+		<error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <logger level="INFO" doc:name="Logger" doc:id="5c0697de-c45b-4f9f-840b-5481cbcb5d93" message="Getting into the transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="cc36f74f-6d00-4eae-9b1b-20b9a6a409a8" message="Request is not valid. Please try again with a valid request."/>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <logger level="INFO" doc:name="Logger" doc:id="a29ee780-4208-41f2-b2a4-cc5142cc177d" message="Entering into transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="66702f4d-4db5-4062-b5e1-52fccc60db3a" message="Resource is not found. Please make sure all resources are available."/>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <logger level="INFO" doc:name="Logger" doc:id="68a5b65f-33d1-41d9-9c83-c33d533d14ae" message="Entering into transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="fc9bd74e-c646-4f01-9137-2f1becf457ce" message="This method is not allowed, please try with another method."/>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <logger level="INFO" doc:name="Logger" doc:id="730d9d1d-6721-49b8-990e-36288b1d3bdd" message="Getting into the transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="212bba15-8fe3-4499-ac57-2026a52b17fa" message="This is not acceptable, please try with valid credentials."/>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <logger level="INFO" doc:name="Logger" doc:id="a1ff7254-2ab3-4630-a0dc-30319268fc1f" message="Getting into the transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="8e51414e-ba4a-43be-b67a-a3119c1aebba" message="The type of media provided is not supported. Please try with supported media type."/>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <logger level="INFO" doc:name="Logger" doc:id="0f0b5610-738f-4e7e-a141-d7a275f4335c" message="Entering into the transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="451fd859-69bd-4273-b4c3-87047ab926d6" message="This is not implemented."/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="mulesoft-poc1-console">
+        <http:listener config-ref="mulesoft-poc1-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" doc:name="Logger" doc:id="6019131b-5001-4da5-a06b-6be1bdb52338" message="Entering into MuleSoft POC console flow."/>
+		<apikit:console config-ref="mulesoft-poc1-config" />
+        <logger level="INFO" doc:name="Logger" doc:id="12331061-bc7f-4600-8ec5-30c6dd3ecc42" message="Routing of the incoming request."/>
+		<error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <logger level="INFO" doc:name="Logger" doc:id="75d30f58-bab6-4613-a583-b10102e4fa6a" message="Getting into transformation of message."/>
+				<ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="762577a7-4942-4dc9-ac92-aa0ccf596a2b" message="Not able to find the resources, please provide the required resources."/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+	<flow name="get:\order:mulesoft-poc1-config">
+        <logger level="INFO" doc:name="Logger" doc:id="1de3da12-23bf-4f28-a927-546a91a1d74b" message="Hello, you are inside get method."/>
+		<ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var pmam = (now() >> "IST") as String {format:"a"}
+var dt = (now() >> "IST") as String {format:"yyyy-mm-dd hh:mm"}
+---
+{
+  uniqueId: attributes.headers.vendorName ++ " - " ++ uuid(),
+  currentDate: dt ++ pmam,
+  status: "Success"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="aa5c19b4-8383-4248-a2b3-92619ff41c21" message="Message has been transformed."/>
+    </flow>
+	<flow name="post:\order:application\json:mulesoft-poc1-config">
+		<logger level="INFO" doc:name="Logger" doc:id="77245f7a-acf7-447f-a423-a11174cc3bda" message="Hello, this is post method." />
+		<logger level="INFO" doc:name="Logger" doc:id="ce4983d7-ee2d-49d7-8a37-9299dc1bb6be" message="Please choose the output based on the input provided." />
+		<choice doc:name="Choice" doc:id="a2491634-69fb-4048-bf8d-3d2ab43cad6c">
+			<when expression="sizeOf(payload.records.contactNo[0])!=10">
+				<ee:transform doc:name="Transform Message" doc:id="88912b66-c894-4547-892d-704f1662f21e">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+  "errorMessage" : "record with orderId=AB123 is already processed",
+  "status": "Failed"
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="f866bf7c-2f7f-4ad3-a0ec-f09e31501f9b" message="This is an error, please provide valid inputs." />
+			</when>
+			<otherwise>
+				<ee:transform doc:id="d41c5f4f-7bb1-4627-9c0c-a41f58691488">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	orders: {
+		([{
+			invoices: {
+				"order-id": payload.orderId
+			}
+		}] ++ (payload.records map ( record , indexOfRecord ) -> {
+			invoices: {
+				"user-name": record.name as String,
+				"phone-number": "+91 " ++ record.contactNo,
+				mail: record.emailId
+			}
+		}))
+	}
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="81dabb01-3f6d-48c2-b533-b7db9761c47f" message="Successfully generated the output." />
+			</otherwise>
+		</choice>
+    </flow>
+</mule>
