@@ -1,0 +1,14 @@
+#%RAML 1.0
+title: WorldTime REST API
+/getTime:
+  get:
+    queryParameters:
+      zone1: 
+        required: true
+        type: string
+        example: Asia
+        
+      zone2:
+        required: true
+        type: string
+        example: Kolkata
