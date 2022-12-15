@@ -1,0 +1,29 @@
+#%RAML 1.0
+title: MuleSoft POC1
+version: v1
+
+/order:
+  get:
+    headers:
+      vendorName:
+        required: true
+        type: string
+        example: InvenioLSI
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include example/getOrder.json           
+    
+  post:
+    body:
+      application/json:
+       example: !include example/orders.json
+        
+    responses:
+      201:
+        body:
+          application/json:
+            example: 
+              message: Order has been added.  
+    
